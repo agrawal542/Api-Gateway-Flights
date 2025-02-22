@@ -22,7 +22,8 @@ module.exports = (sequelize, DataTypes) => {
         values: [ADMIN, CUSTOMER, FLIGHT_COMPANY]
       }),
       allowNull: false,
-      defaultValue: CUSTOMER
+      defaultValue: CUSTOMER,
+      unique: true
     }
   }, {
     sequelize,

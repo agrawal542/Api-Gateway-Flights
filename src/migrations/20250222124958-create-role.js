@@ -15,6 +15,7 @@ module.exports = {
         values: [ADMIN, CUSTOMER, FLIGHT_COMPANY],
         defaultValue: CUSTOMER,
         allowNull: false,
+        unique: true,
       },
       createdAt: {
         allowNull: false,
