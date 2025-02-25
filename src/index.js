@@ -3,7 +3,7 @@ const morgan = require('morgan');
 const apiRoutes = require('./routes/index.js');
 const { ServerConfig, Logger } = require('./config/index.js');
 const rateLimit = require('express-rate-limit');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const { createProxyMiddleware, fixRequestBody } = require('http-proxy-middleware');
 const { UserMiddlewares } = require('./middlewares/index.js');
 
 const app = express();
@@ -21,9 +21,39 @@ app.use(limiter);
 app.use('/flightsService', UserMiddlewares.checkAuth, createProxyMiddleware({
     target: ServerConfig.FLIGHT_SERVICE,
     changeOrigin: true,
-    // pathRewrite: {'^/flightsService' : '/'} 
+    // pathRewrite: { '^/flightsService': '/' },
+    // on: {
+    //     proxyReq: fixRequestBody,
+    // },
 }));
-app.use('/bookingService', UserMiddlewares.checkAuth, createProxyMiddleware({ target: ServerConfig.BOOKING_SERVICE, changeOrigin: true }));
+app.use(
+    '/bookingService',
+    UserMiddlewares.checkAuth,
+    createProxyMiddleware({
+        target: ServerConfig.BOOKING_SERVICE,
+        changeOrigin: true,
+        on: {
+            proxyReq: (proxyReq, req, res) => {
+                // Ensure req.user is set as a header before sending the request
+                if (req.user) {
+                    proxyReq.setHeader('x-user-data', JSON.stringify(req.user));
+                }
+
+                // Forward request body only if necessary
+                if (req.body) {
+                    const bodyData = JSON.stringify(req.body);
+
+                    // Set headers for the request body
+                    proxyReq.setHeader('Content-Type', 'application/json');
+                    proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+
+                    // Write and end request properly
+                    proxyReq.write(bodyData);
+                }
+            },
+        },
+    })
+);
 
 
 
